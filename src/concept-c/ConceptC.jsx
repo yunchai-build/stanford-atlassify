@@ -21,7 +21,7 @@ export default function ConceptC({ registerReset }) {
   const [count, setCount] = useState(3);
   const [toolEnabled, setToolEnabled] = useState({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false });
   const [runs, setRuns] = useState([]);
-  const [selectedRank, setSelectedRank] = useState(0);
+  const [selectedRank, setSelectedRank] = useState(null);
   const [objects, setObjects] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [promptedFileUrl, setPromptedFileUrl] = useState(null);
@@ -40,9 +40,9 @@ export default function ConceptC({ registerReset }) {
   const run = () => {
     const results = Array.from({ length: count }, (_, rank) => ({ rank, confidence: confidenceFor(rank) }));
     const toolsUsed = [...(mode === "video" && intent === "track" && objects.length ? ["track_instance_video"] : []), ...Object.keys(toolEnabled).filter(k => toolEnabled[k])];
-    setRuns(rs => [...rs, { id: rs.length + 1, results, objects, mode, query, fileName: file?.name, toolsUsed }]); setSelectedRank(0);
+    setRuns(rs => [...rs, { id: rs.length + 1, results, objects, mode, query, fileName: file?.name, toolsUsed }]); setSelectedRank(null);
   };
-  const reset = () => { setMode("text"); setIntent("find"); setQuery(""); setFile(null); setDataset(DATASETS[0]); setCount(3); setRuns([]); setObjects([]); setModalOpen(false); setPoints([]); setToolEnabled({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false }); };
+  const reset = () => { setMode("text"); setIntent("find"); setQuery(""); setFile(null); setDataset(DATASETS[0]); setCount(3); setRuns([]); setSelectedRank(null); setObjects([]); setModalOpen(false); setPoints([]); setToolEnabled({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false }); };
   useEffect(() => { registerReset(reset); });
   useEffect(() => { const el = resultGridRef.current; if (!el) return; const update = () => setResultColumns(Math.max(1, Math.floor((el.clientWidth + 12) / 202))); update(); const observer = new ResizeObserver(update); observer.observe(el); return () => observer.disconnect(); }, [runs.length]);
   useEffect(() => { if (mode === "video" && intent === "track" && file && promptedFileUrl !== file.url && !objects.length) { setPromptedFileUrl(file.url); setPoints([]); setModalOpen(true); } }, [mode, intent, file, promptedFileUrl, objects.length]);
@@ -53,7 +53,7 @@ export default function ConceptC({ registerReset }) {
   const clearAnnotation = () => { if (points.length) setRedoPoints(points); setPoints([]); };
   const doneAnnotation = () => { if (points.some(p => p.type === "fg")) setObjects([{ id: 1, points }]); setModalOpen(false); };
   const current = runs[runs.length - 1];
-  const selectedDetail = current && <div className="result-detail"><div className="result-detail-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="result-detail-copy"><div className="request-kicker">SELECTED RESULT {selectedRank + 1}</div><h3>{Math.round(current.results[selectedRank].confidence * 100)}% confidence</h3><p>{current.mode === "text" ? `Matches scenes related to “${current.query || "your request"}”.` : current.mode === "image" ? "Visually similar scenes found from the uploaded image." : "Matching scenes found in the uploaded video."}</p><span>{current.fileName || "Text request"} · {current.toolsUsed.length ? `${current.toolsUsed.length} tools used` : "No optional tools"}</span></div></div>;
+  const selectedDetail = current && selectedRank !== null && <div className="result-detail"><div className="result-detail-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="result-detail-copy"><div className="request-kicker">SELECTED RESULT {selectedRank + 1}</div><h3>{Math.round(current.results[selectedRank].confidence * 100)}% confidence</h3><p>{current.mode === "text" ? `Matches scenes related to “${current.query || "your request"}”.` : current.mode === "image" ? "Visually similar scenes found from the uploaded image." : "Matching scenes found in the uploaded video."}</p><span>{current.fileName || "Text request"} · {current.toolsUsed.length ? `${current.toolsUsed.length} tools used` : "No optional tools"}</span></div></div>;
   const resultRows = current ? Array.from({ length: Math.ceil(current.results.length / resultColumns) }, (_, i) => current.results.slice(i * resultColumns, i * resultColumns + resultColumns)) : [];
   return <div className="workspace-c">
     <input ref={fileRef} type="file" accept={mode === "image" ? "image/*" : "video/*"} hidden onChange={pickFile} />
