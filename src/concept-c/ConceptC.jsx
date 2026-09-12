@@ -28,7 +28,9 @@ export default function ConceptC({ registerReset }) {
   const [points, setPoints] = useState([]);
   const [redoPoints, setRedoPoints] = useState([]);
   const [pointType, setPointType] = useState("fg");
+  const [resultColumns, setResultColumns] = useState(3);
   const fileRef = useRef(null);
+  const resultGridRef = useRef(null);
 
   const canRun = mode === "text" ? query.trim().length > 0 : !!file;
   const activeMode = MODES.find(m => m.id === mode);
@@ -42,6 +44,7 @@ export default function ConceptC({ registerReset }) {
   };
   const reset = () => { setMode("text"); setIntent("find"); setQuery(""); setFile(null); setDataset(DATASETS[0]); setCount(3); setRuns([]); setObjects([]); setModalOpen(false); setPoints([]); setToolEnabled({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false }); };
   useEffect(() => { registerReset(reset); });
+  useEffect(() => { const el = resultGridRef.current; if (!el) return; const update = () => setResultColumns(Math.max(1, Math.floor((el.clientWidth + 12) / 202))); update(); const observer = new ResizeObserver(update); observer.observe(el); return () => observer.disconnect(); }, [current]);
   useEffect(() => { if (mode === "video" && intent === "track" && file && promptedFileUrl !== file.url && !objects.length) { setPromptedFileUrl(file.url); setPoints([]); setModalOpen(true); } }, [mode, intent, file, promptedFileUrl, objects.length]);
 
   const addAnnotationPoint = (x, y) => { setPoints(p => [...p, { x, y, type: pointType }]); setRedoPoints([]); };
@@ -51,7 +54,7 @@ export default function ConceptC({ registerReset }) {
   const doneAnnotation = () => { if (points.some(p => p.type === "fg")) setObjects([{ id: 1, points }]); setModalOpen(false); };
   const current = runs[runs.length - 1];
   const selectedDetail = current && <div className="result-detail"><div className="result-detail-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="result-detail-copy"><div className="request-kicker">SELECTED RESULT {selectedRank + 1}</div><h3>{Math.round(current.results[selectedRank].confidence * 100)}% confidence</h3><p>{current.mode === "text" ? `Matches scenes related to “${current.query || "your request"}”.` : current.mode === "image" ? "Visually similar scenes found from the uploaded image." : "Matching scenes found in the uploaded video."}</p><span>{current.fileName || "Text request"} · {current.toolsUsed.length ? `${current.toolsUsed.length} tools used` : "No optional tools"}</span></div></div>;
-  const resultRows = current ? Array.from({ length: Math.ceil(current.results.length / 3) }, (_, i) => current.results.slice(i * 3, i * 3 + 3)) : [];
+  const resultRows = current ? Array.from({ length: Math.ceil(current.results.length / resultColumns) }, (_, i) => current.results.slice(i * resultColumns, i * resultColumns + resultColumns)) : [];
   return <div className="workspace-c">
     <input ref={fileRef} type="file" accept={mode === "image" ? "image/*" : "video/*"} hidden onChange={pickFile} />
     <section className="request-panel">
@@ -69,7 +72,7 @@ export default function ConceptC({ registerReset }) {
       <button className="run-analysis" disabled={!canRun || (mode === "video" && intent === "track" && !objects.length)} onClick={run}>Run analysis <span>↑</span></button>
       <div className="request-status">{canRun ? `${activeMode.label} search ready · ${dataset}` : "Choose a search type and add an input to continue"}</div>
     </section>
-    <section className="results-panel">{!current ? <div className="c-empty"><IdeasForYou onPick={s => { setMode("text"); setQuery(s); }} /></div> : <><div className="results-head"><div><div className="request-kicker">ANALYSIS RUN {current.id}</div><h2>Top results</h2></div><span>{current.results.length} matches</span></div><div className="result-grid">{resultRows.map((row, i) => <div className="result-row-group" key={i}>{row.map(r => <button className="c-result" data-selected={r.rank === selectedRank} key={r.rank} onClick={() => setSelectedRank(r.rank)}><div className="c-result-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="c-result-meta"><b>Result {r.rank + 1}</b><strong>{Math.round(r.confidence * 100)}%</strong></div></button>)}{row.some(r => r.rank === selectedRank) && selectedDetail}</div>)}</div><details className="disclosure"><summary>See request details</summary><pre>{JSON.stringify({ mode: current.mode, query: current.query, file: current.fileName, dataset, tools: current.toolsUsed }, null, 2)}</pre></details></>}</section>
+    <section className="results-panel">{!current ? <div className="c-empty"><IdeasForYou onPick={s => { setMode("text"); setQuery(s); }} /></div> : <><div className="results-head"><div><div className="request-kicker">ANALYSIS RUN {current.id}</div><h2>Top results</h2></div><span>{current.results.length} matches</span></div><div className="result-grid" ref={resultGridRef}>{resultRows.map((row, i) => <div className="result-row-group" style={{ gridTemplateColumns: `repeat(${resultColumns}, minmax(0, 1fr))` }} key={i}>{row.map(r => <button className="c-result" data-selected={r.rank === selectedRank} key={r.rank} onClick={() => setSelectedRank(r.rank)}><div className="c-result-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="c-result-meta"><b>Result {r.rank + 1}</b><strong>{Math.round(r.confidence * 100)}%</strong></div></button>)}{row.some(r => r.rank === selectedRank) && selectedDetail}</div>)}</div><details className="disclosure"><summary>See request details</summary><pre>{JSON.stringify({ mode: current.mode, query: current.query, file: current.fileName, dataset, tools: current.toolsUsed }, null, 2)}</pre></details></>}</section>
     {modalOpen && <AnnotationModal objectLabel="the object to track" mediaUrl={file?.url} points={points} onAddPoint={addAnnotationPoint} onUndo={undoAnnotation} onRedo={redoAnnotation} onClear={clearAnnotation} canRedo={redoPoints.length > 0} tool={pointType} setTool={setPointType} onDone={doneAnnotation} />}
   </div>;
 }
