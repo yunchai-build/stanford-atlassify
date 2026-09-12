@@ -21,3 +21,4 @@
 .results-panel .disclosure { border:0; }
 @media (max-width:800px) { .workspace-c { grid-template-columns:1fr; }.request-panel,.results-panel { padding:16px; }.result-row-group { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .c-result[data-selected="true"] { box-shadow:none; }
+.result-detail-thumb { min-height:220px; }
