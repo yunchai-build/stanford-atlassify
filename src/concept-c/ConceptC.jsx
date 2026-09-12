@@ -44,7 +44,7 @@ export default function ConceptC({ registerReset }) {
   };
   const reset = () => { setMode("text"); setIntent("find"); setQuery(""); setFile(null); setDataset(DATASETS[0]); setCount(3); setRuns([]); setObjects([]); setModalOpen(false); setPoints([]); setToolEnabled({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false }); };
   useEffect(() => { registerReset(reset); });
-  useEffect(() => { const el = resultGridRef.current; if (!el) return; const update = () => setResultColumns(Math.max(1, Math.floor((el.clientWidth + 12) / 202))); update(); const observer = new ResizeObserver(update); observer.observe(el); return () => observer.disconnect(); }, [current]);
+  useEffect(() => { const el = resultGridRef.current; if (!el) return; const update = () => setResultColumns(Math.max(1, Math.floor((el.clientWidth + 12) / 202))); update(); const observer = new ResizeObserver(update); observer.observe(el); return () => observer.disconnect(); }, [runs.length]);
   useEffect(() => { if (mode === "video" && intent === "track" && file && promptedFileUrl !== file.url && !objects.length) { setPromptedFileUrl(file.url); setPoints([]); setModalOpen(true); } }, [mode, intent, file, promptedFileUrl, objects.length]);
 
   const addAnnotationPoint = (x, y) => { setPoints(p => [...p, { x, y, type: pointType }]); setRedoPoints([]); };
