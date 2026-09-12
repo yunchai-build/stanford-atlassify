@@ -21,6 +21,7 @@ export default function ConceptC({ registerReset }) {
   const [count, setCount] = useState(3);
   const [toolEnabled, setToolEnabled] = useState({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false });
   const [runs, setRuns] = useState([]);
+  const [selectedRank, setSelectedRank] = useState(0);
   const [objects, setObjects] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [promptedFileUrl, setPromptedFileUrl] = useState(null);
@@ -37,7 +38,7 @@ export default function ConceptC({ registerReset }) {
   const run = () => {
     const results = Array.from({ length: count }, (_, rank) => ({ rank, confidence: confidenceFor(rank) }));
     const toolsUsed = [...(mode === "video" && intent === "track" && objects.length ? ["track_instance_video"] : []), ...Object.keys(toolEnabled).filter(k => toolEnabled[k])];
-    setRuns(rs => [...rs, { id: rs.length + 1, results, objects, mode, query, fileName: file?.name, toolsUsed }]);
+    setRuns(rs => [...rs, { id: rs.length + 1, results, objects, mode, query, fileName: file?.name, toolsUsed }]); setSelectedRank(0);
   };
   const reset = () => { setMode("text"); setIntent("find"); setQuery(""); setFile(null); setDataset(DATASETS[0]); setCount(3); setRuns([]); setObjects([]); setModalOpen(false); setPoints([]); setToolEnabled({ critical_view_safety: false, surgical_tool_detection: false, tissue_detection: false }); };
   useEffect(() => { registerReset(reset); });
@@ -66,7 +67,7 @@ export default function ConceptC({ registerReset }) {
       <button className="run-analysis" disabled={!canRun || (mode === "video" && intent === "track" && !objects.length)} onClick={run}>Run analysis <span>↑</span></button>
       <div className="request-status">{canRun ? `${activeMode.label} search ready · ${dataset}` : "Choose a search type and add an input to continue"}</div>
     </section>
-    <section className="results-panel">{!current ? <div className="c-empty"><IdeasForYou onPick={s => { setMode("text"); setQuery(s); }} /></div> : <><div className="results-head"><div><div className="request-kicker">ANALYSIS RUN {current.id}</div><h2>Top results</h2></div><span>{current.results.length} matches</span></div><div className="result-grid">{current.results.map(r => <div className="c-result" key={r.rank}><div className="c-result-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="c-result-meta"><b>Result {r.rank + 1}</b><strong>{Math.round(r.confidence * 100)}%</strong></div></div>)}</div><details className="disclosure"><summary>See request details</summary><pre>{JSON.stringify({ mode: current.mode, query: current.query, file: current.fileName, dataset }, null, 2)}</pre></details></>}</section>
+    <section className="results-panel">{!current ? <div className="c-empty"><IdeasForYou onPick={s => { setMode("text"); setQuery(s); }} /></div> : <><div className="results-head"><div><div className="request-kicker">ANALYSIS RUN {current.id}</div><h2>Top results</h2></div><span>{current.results.length} matches</span></div><div className="result-grid">{current.results.map(r => <button className="c-result" data-selected={r.rank === selectedRank} key={r.rank} onClick={() => setSelectedRank(r.rank)}><div className="c-result-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="c-result-meta"><b>Result {r.rank + 1}</b><strong>{Math.round(r.confidence * 100)}%</strong></div></button>)}</div><div className="result-detail"><div className="result-detail-thumb"><Scene frameIndex={FRAME_COUNT} objects={current.objects.length ? current.objects : [{ id: 1, points: [] }]} showBoxes /></div><div className="result-detail-copy"><div className="request-kicker">SELECTED RESULT {selectedRank + 1}</div><h3>{Math.round(current.results[selectedRank].confidence * 100)}% confidence</h3><p>{current.mode === "text" ? `Matches scenes related to “${current.query || "your request"}”.` : current.mode === "image" ? "Visually similar scenes found from the uploaded image." : "Matching scenes found in the uploaded video."}</p><span>{current.fileName || "Text request"} · {current.toolsUsed.length ? `${current.toolsUsed.length} tools used` : "No optional tools"}</span></div></div><details className="disclosure"><summary>See request details</summary><pre>{JSON.stringify({ mode: current.mode, query: current.query, file: current.fileName, dataset, tools: current.toolsUsed }, null, 2)}</pre></details></>}</section>
     {modalOpen && <AnnotationModal objectLabel="the object to track" mediaUrl={file?.url} points={points} onAddPoint={addAnnotationPoint} onUndo={undoAnnotation} onRedo={redoAnnotation} onClear={clearAnnotation} canRedo={redoPoints.length > 0} tool={pointType} setTool={setPointType} onDone={doneAnnotation} />}
   </div>;
 }
