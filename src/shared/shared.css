@@ -75,3 +75,4 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
 .tool-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
 .tool-toggle button { border: none; background: var(--surface); color: var(--ink-muted); padding: 7px 10px; font-size: 11.5px; font-weight: 500; border-right: 1px solid var(--border-strong); }
 .tool-toggle button:last-child { border-right: none; }
+.tool-toggle button[data-active="true"] { background:var(--accent); color:var(--accent-ink); }
